@@ -29,9 +29,9 @@ def prepare_video_note(input_file, output_file):
 # Listen for any private message sent to the bot that contains a video
 @client.on(events.NewMessage(func=lambda e: e.is_private and e.video))
 async def handle_video(event):
-    status_msg = await event.reply("📥 Downloading video to VPS...")
+    status_msg = await event.reply("📥 Downloading video...")
     
-    # 1. Download the video to the VPS
+    # 1. Download the video
     try:
         downloaded_file = await event.download_media()
         processed_file = f"ready_{event.id}.mp4"
@@ -43,25 +43,30 @@ async def handle_video(event):
     await status_msg.edit("⚙️ Processing video with FFmpeg...")
     prepare_video_note(downloaded_file, processed_file)
 
-    # 3. Upload to the target channel
-    await status_msg.edit(f"📤 Uploading to {target_channel}...")
+    # 3. Upload to the target channel and get the link
+    await status_msg.edit(f"📤 Uploading to channel...")
     try:
-        await client.send_file(
+        # Capture the message object returned by the upload
+        uploaded_msg = await client.send_file(
             target_channel, 
             processed_file, 
             video_note=True, 
-            caption="Automated upload via VPS bot"
+            caption="Automated upload via bot"
         )
-        await status_msg.edit("✅ Upload successful! Check your channel.")
+        
+        # Construct the shareable link using the message ID
+        telescope_link = f"https://telesco.pe/uuuujikkmuh/{uploaded_msg.id}"
+        
+        await status_msg.edit(f"✅ Upload successful!\n🔗 Your Link: {telescope_link}")
     except Exception as e:
         await status_msg.edit(f"❌ Upload failed: {str(e)}")
 
-    # 4. Clean up VPS storage
+    # 4. Clean up storage
     if os.path.exists(downloaded_file):
         os.remove(downloaded_file)
     if os.path.exists(processed_file):
         os.remove(processed_file)
 
 print("Bot is running! Send a video to your bot to start.")
-# This keeps the script running 24/7 on your VPS
+# This keeps the script running 24/7 waiting for messages
 client.run_until_disconnected()
